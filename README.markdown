@@ -1,6 +1,3 @@
-git remote add origin git@github.com:komone/qrcode.git
-  git push -u origin master
-
 QR Code Encoder
 ===============
 
@@ -25,5 +22,6 @@ Demo
 5. Scan the qrcode into the phone.
 6. Ensure server clock is correct.
 7. The value of `qrcode_demo:totp()` should show the same passcode as the phone.
+8. Handle PINs/logins for the second part of the "two factor" according to your application design.
 
 NOTE: This documentation is rather basic as this was open-sourced by specific request!
