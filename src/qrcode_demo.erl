@@ -119,18 +119,3 @@ hotp(Key, Count) when is_binary(Key), is_integer(Count) ->
 
 unow() ->
 	calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - ?UNIX_TIME_ZERO.
-	
-hex(Bin) when is_binary(Bin) ->
-	hex(Bin, <<>>).	
-
-hex(<<A:4, B:4, Rest/binary>>, Acc) ->
-	U = hex_digit(A),
-	L = hex_digit(B),
-	hex(Rest, <<Acc/binary, U, L>>);
-hex(<<>>, Acc) ->
-	Acc.
-
-hex_digit(D) when D >= 0, D =< 9 -> 
-	$0 + D;
-hex_digit(D) when D >= 10, D =< 16 -> 
-	$a + D - 10.
