@@ -136,7 +136,7 @@ rule1_row(L = [H|_], Score) ->
 rule1_row([], Score) ->
 	Score.
 
-%% TODO
+%%
 apply_penalty_rule_2(_M = [H, H0|T]) ->
 %	?TTY(M),
 	Blocks = rule2(1, 1, H, H0, [H0|T], []),
