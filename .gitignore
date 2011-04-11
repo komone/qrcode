@@ -1,0 +1,9 @@
+*.beam
+*.dump
+*.lnk
+*.log
+*.pdf
+*.pem
+*.png
+test/*
+work/*
