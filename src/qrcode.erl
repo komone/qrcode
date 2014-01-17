@@ -87,7 +87,7 @@ generate_ecc(<<>>, [], Acc) ->
 generate_ecc0(Bin, Count, TotalLength, BlockLength, Acc) when byte_size(Bin) >= BlockLength, Count > 0 ->
 	<<Block:BlockLength/binary, Bin0/binary>> = Bin,
 	EC = qrcode_reedsolomon:encode(Block, TotalLength - BlockLength),
-	generate_ecc0(Bin0, Count, TotalLength, BlockLength, [{Block, EC}|Acc]);
+	generate_ecc0(Bin0, Count - 1, TotalLength, BlockLength, [{Block, EC}|Acc]);
 generate_ecc0(Bin, Count, TotalLength, BlockLength, Acc) when Count > 0 ->
 	Block = pad_block(Bin, BlockLength),
 	EC = qrcode_reedsolomon:encode(Block, TotalLength - BlockLength),
