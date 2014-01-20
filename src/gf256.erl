@@ -75,8 +75,6 @@ add(F, [H|T], [], Acc) ->
 	add(F, T, [], [H|Acc]);
 add(F, [], [H|T], Acc) ->
 	add(F, [], T, [H|Acc]);
-add(F, [], [], [0|Acc]) ->
-	add(F, [], [], Acc);
 add(_, [], [], Acc) ->
 	Acc.
 
@@ -85,17 +83,13 @@ subtract(F = #gf256{}, A, B) ->
 	add(F, A, B).
 
 %%
-multiply(#gf256{}, 0, _) ->
-	0;
-multiply(#gf256{}, _, 0) ->
-	0;
 multiply(#gf256{}, 1, B) ->
 	B;
 multiply(#gf256{}, A, 1) ->
 	A;
-multiply(#gf256{exponent = E, log = L}, A, B) ->
-	X = (lists:nth(A + 1, L) + lists:nth(B + 1, L)) rem ?RANGE,
-	lists:nth(X + 1, E).
+multiply(F = #gf256{}, A, B) ->
+	X = (log(F, A) + log(F, B)) rem ?RANGE,
+	exponent(F, X).
 
 %%
 exponent(#gf256{exponent = E}, X) ->
@@ -106,8 +100,8 @@ log(#gf256{log = L}, X) ->
 	lists:nth(X + 1, L).
 	
 %%
-inverse(#gf256{exponent = E, log = L}, X) ->
-	lists:nth(256 - lists:nth(X + 1, L), E).
+inverse(F = #gf256{}, X) ->
+	exponent(F, ?RANGE - log(F, X)).
 
 %%
 value(#gf256{}, Poly, 0) ->
@@ -131,8 +125,6 @@ monomial(#gf256{}, Coeff, Degree) when Degree >= 0 ->
 	[Coeff|lists:duplicate(Degree, 0)].
 
 %%
-monomial_product(#gf256{}, _, 0, _) ->
-	[0];
 monomial_product(F, Poly, Coeff, Degree) ->
 	monomial_product(F, Poly, Coeff, Degree, []).
 %	
@@ -184,9 +176,7 @@ divide(F, IDLT, B, Q, R = [H|_]) when length(R) >= length(B), R =/= [0] ->
 	M = monomial(F, Scale, Diff),
 	Q0 = add(F, Q, M),
 	Coeffs = monomial_product(F, B, Scale, Diff),
-	R0 = add(F, R, Coeffs),
+	[_|R0] = add(F, R, Coeffs),
 	divide(F, IDLT, B, Q0, R0);
 divide(_, _, _, Q, R) ->
 	{Q, R}.
-	
-

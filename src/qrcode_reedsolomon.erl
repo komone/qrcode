@@ -25,14 +25,9 @@ encode(Bin, Degree) when Degree > 0 ->
 	Data = binary_to_list(Bin),
 	Coeffs = gf256:monomial_product(Field, Data, 1, Degree),
 	{_Quotient, Remainder} = gf256:divide(Field, Coeffs, Generator),
-	Remainder0 = zero_pad(Degree, Remainder),
-	ErrorCorrectionBytes = list_to_binary(Remainder0),
+	ErrorCorrectionBytes = list_to_binary(Remainder),
 	<<ErrorCorrectionBytes/binary>>.
 
-zero_pad(Length, R) when length(R) < Length ->
-	zero_pad(Length, [0|R]);
-zero_pad(_, R) ->
-	R.
 %%
 bch_code(Byte, Poly) ->
 	MSB = msb(Poly),
