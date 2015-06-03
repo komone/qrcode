@@ -100,7 +100,7 @@ get_pixels0(<<>>, Acc) ->
 %%
 totp() ->
 	Key = crypto:sha(<<"password">>),	
-	totp(Key, 60).
+	totp(Key, 30).
 totp(Key, Period) ->
 	T = unow() div Period,
 	{hotp(Key, T - 1), hotp(Key, T), hotp(Key, T + 1)}.
