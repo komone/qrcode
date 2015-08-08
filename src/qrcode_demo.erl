@@ -44,10 +44,11 @@
 -compile(export_all).
 
 -define(TTY(Term), io:format(user, "[~p] ~p~n", [?MODULE, Term])).
+-define(PERIOD, 30).
 
 run() ->
 	Passcode = crypto:sha(<<"password">>),
-	run(<<"demo@mydomain.com">>, Passcode, 60).
+	run(<<"demo@mydomain.com">>, Passcode, ?PERIOD).
 
 run(Domain, Passcode, Seconds) ->
 	PasscodeBase32 = base32:encode(Passcode),
@@ -100,7 +101,7 @@ get_pixels0(<<>>, Acc) ->
 %%
 totp() ->
 	Key = crypto:sha(<<"password">>),	
-	totp(Key, 60).
+	totp(Key, ?PERIOD).
 totp(Key, Period) ->
 	T = unow() div Period,
 	{hotp(Key, T - 1), hotp(Key, T), hotp(Key, T + 1)}.
