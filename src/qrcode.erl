@@ -3,9 +3,9 @@
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
 % You may obtain a copy of the License at
-% 
+%
 % http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 % Unless required by applicable law or agreed to in writing, software
 % distributed under the License is distributed on an "AS IS" BASIS,
 % WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,10 +17,10 @@
 -include("qrcode.hrl").
 -include("qrcode_params.hrl").
 
--export([encode/1, decode/1]).
-	
+-export([encode/1, encode/2, decode/1]).
+
 %%
-decode(_Bin) -> 
+decode(_Bin) ->
 	{error, not_implemented}.
 
 %%
@@ -52,16 +52,16 @@ choose_qr_params(Bin, ECLevel) ->
 	Dim = qrcode_matrix:dimension(Version),
 	#qr_params{mode = Mode, version = Version, dimension = Dim, ec_level = ECLevel,
 		block_defs = ECCBlockDefs, align_coords = AlignmentCoords, remainder = Remainder, data = Bin}.
-	
+
 %% NOTE: byte mode only (others removed)
 choose_encoding(_Bin) ->
 	byte.
-	
+
 %%
 choose_version(Type, ECC, Length) ->
 	choose_version(Type, ECC, Length, ?TABLES).
 %
-choose_version(byte, ECC, Length, [{{ECC, Version}, {_, _, Capacity, _}, ECCBlocks, Remainder}|_]) 
+choose_version(byte, ECC, Length, [{{ECC, Version}, {_, _, Capacity, _}, ECCBlocks, Remainder}|_])
 		when Capacity >= Length ->
 	{byte, Version, ECCBlocks, Remainder};
 choose_version(Type, ECC, Length, [_|T]) ->
@@ -76,22 +76,42 @@ encode_content(byte, Version, Bin) ->
 
 %%
 generate_ecc_blocks(#qr_params{block_defs = ECCBlockDefs}, Bin) ->
-	generate_ecc(Bin, ECCBlockDefs, []).
-%
+	Bin0 = pad_data(Bin, ECCBlockDefs),
+	generate_ecc(Bin0, ECCBlockDefs, []).
+
+
+pad_data(Bin, ECCBlockDefs) ->
+	DataSize = byte_size(Bin),
+	TotalSize = get_ecc_size(ECCBlockDefs),
+	PaddingSize = TotalSize - DataSize,
+	Padding = binary:copy(<<?DATA_PAD_0, ?DATA_PAD_1>>, PaddingSize bsr 1),
+	case PaddingSize band 1 of
+	0 ->
+		<<Bin/binary, Padding/binary>>;
+	1 ->
+		<<Bin/binary, Padding/binary, ?DATA_PAD_0>>
+	end.
+
+
+get_ecc_size(ECCBlockDefs) ->
+	get_ecc_size(ECCBlockDefs, 0).
+get_ecc_size([{C, _, D}|T], Acc) ->
+	get_ecc_size(T, C * D + Acc);
+get_ecc_size([], Acc) ->
+	Acc.
+
+
 generate_ecc(Bin, [{C, L, D}|T], Acc) ->
 	{Result, Bin0} = generate_ecc0(Bin, C, L, D, []),
 	generate_ecc(Bin0, T, [Result|Acc]);
 generate_ecc(<<>>, [], Acc) ->
 	lists:flatten(lists:reverse(Acc)).
-%	
+
+
 generate_ecc0(Bin, Count, TotalLength, BlockLength, Acc) when byte_size(Bin) >= BlockLength, Count > 0 ->
 	<<Block:BlockLength/binary, Bin0/binary>> = Bin,
 	EC = qrcode_reedsolomon:encode(Block, TotalLength - BlockLength),
 	generate_ecc0(Bin0, Count - 1, TotalLength, BlockLength, [{Block, EC}|Acc]);
-generate_ecc0(Bin, Count, TotalLength, BlockLength, Acc) when Count > 0 ->
-	Block = pad_block(Bin, BlockLength),
-	EC = qrcode_reedsolomon:encode(Block, TotalLength - BlockLength),
-	{lists:reverse([{Block, EC}|Acc]), <<>>}; 
 generate_ecc0(Bin, 0, _, _, Acc) ->
 	{lists:reverse(Acc), Bin}.
 
@@ -103,11 +123,11 @@ interleave_blocks(Blocks) ->
 interleave_data(Blocks, Bin) ->
 	Data = [X || {X, _} <- Blocks],
 	interleave_blocks(Data, [], Bin).
-	
+
 interleave_ecc(Blocks, Bin) ->
 	Data = [X || {_, X} <- Blocks],
 	interleave_blocks(Data, [], Bin).
-	
+
 interleave_blocks([], [], Bin) ->
 	Bin;
 interleave_blocks([], Acc, Bin) ->
@@ -121,17 +141,7 @@ encode_bytes(Version, Bin) when is_binary(Bin) ->
 	Size = size(Bin),
 	CharacterCountBitSize = cci(?BYTE_MODE, Version),
 	<<?BYTE_MODE:4, Size:CharacterCountBitSize, Bin/binary, 0:4>>.
-%
-pad_block(Bin, BlockLength) ->
-	PadCount = BlockLength - byte_size(Bin),
-	Pad = binary:copy(<<?DATA_PAD_0, ?DATA_PAD_1>>, PadCount bsr 1),
-	case PadCount band 1 of
-	0 ->
-		Padding = Pad;
-	1 ->
-		Padding = <<Pad/binary, ?DATA_PAD_0>>
-	end,
-	<<Bin/binary, Padding/binary>>.
+
 
 %% Table 25. Error correction level indicators
 ecc('L') -> 1;
@@ -149,7 +159,7 @@ alignment_patterns(Version) ->
 	L0 = [{X, Y} || X <- L, Y <- L],
 	L1 = [{X, Y} || {X, Y} <- L0, is_finder_region(D, X, Y) =:= false],
 	% Change the natural sort order so that rows have greater weight than columns
-	F = fun 
+	F = fun
 		({_, Y}, {_, Y0}) when Y < Y0 ->
 			true;
 		({X, Y}, {X0, Y0}) when Y =:= Y0 andalso X =< X0 ->
@@ -159,8 +169,8 @@ alignment_patterns(Version) ->
 		end,
 	lists:sort(F, L1).
 %
-is_finder_region(D, X, Y) 
-		when (X =< 8 andalso Y =< 8) 
+is_finder_region(D, X, Y)
+		when (X =< 8 andalso Y =< 8)
 		orelse (X =< 8 andalso Y >= D - 8)
 		orelse (X >= D - 8 andalso Y =< 8) ->
 	true;
@@ -191,4 +201,3 @@ format_info_bits(#qr_params{ec_level = ECLevel, mask = MaskType}) ->
 	InfoWithEC = (Info bsl 10) bor BCH,
 	Value = InfoWithEC bxor ?FORMAT_INFO_MASK,
 	<<Value:15>>.
-
