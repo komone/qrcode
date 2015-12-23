@@ -3,17 +3,17 @@
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
 % You may obtain a copy of the License at
-% 
+%
 % http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 % Unless required by applicable law or agreed to in writing, software
 % distributed under the License is distributed on an "AS IS" BASIS,
 % WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 % See the License for the specific language governing permissions and
 % limitations under the License.
 
-%% NOTE: This module implements finite field arithmetic over the galois field 
-% GF(256) with a specified prime modulus. 
+%% NOTE: This module implements finite field arithmetic over the galois field
+% GF(256) with a specified prime modulus.
 
 -module(gf256).
 
@@ -26,7 +26,7 @@
 % UNUSED
 %-record(gf256poly, {field, coefficients}).
 % NOTE: Implementation and use are greatly simplified by expressing polynomials
-% simply as lists of coefficient values,  rather than explicit reification of 
+% simply as lists of coefficient values,  rather than explicit reification of
 % polynomial "objects".
 
 -define(RANGE, 255).
@@ -36,7 +36,7 @@ field(PrimeModulus) ->
 	Exponent = exponent_table(1, PrimeModulus, []),
 	Log = log_table(Exponent, 1, [0]),
 	#gf256{exponent = Exponent, log = Log}.
-%	
+%
 exponent_table(X, Modulus, Acc) when length(Acc) =< ?RANGE ->
 	case X bsl 1 of
 	V when V > ?RANGE ->
@@ -47,7 +47,7 @@ exponent_table(X, Modulus, Acc) when length(Acc) =< ?RANGE ->
 	exponent_table(X0, Modulus, [X|Acc]);
 exponent_table(_, _, Acc) ->
 	lists:reverse(Acc).
-%	
+%
 log_table(E, Count, Acc) when Count =< ?RANGE ->
 	X = index_of(Count, 0, E),
 	log_table(E, Count + 1, [X|Acc]);
@@ -59,7 +59,7 @@ index_of(X, Count, [X|_]) ->
 index_of(X, Count, [_|T]) ->
 	index_of(X, Count + 1, T).
 
-%% 
+%%
 add(#gf256{}, A, B) when is_integer(A), is_integer(B) ->
 	A bxor B;
 add(#gf256{}, [0], B) when is_list(B) ->
@@ -68,7 +68,7 @@ add(#gf256{}, A, [0]) when is_list(A) ->
 	A;
 add(F = #gf256{}, A, B) when is_list(A), is_list(B) ->
 	add(F, lists:reverse(A), lists:reverse(B), []).
-	
+
 add(F, [H|T], [H0|T0], Acc) ->
 	add(F, T, T0, [H bxor H0 | Acc]);
 add(F, [H|T], [], Acc) ->
@@ -83,10 +83,10 @@ subtract(F = #gf256{}, A, B) ->
 	add(F, A, B).
 
 %%
-multiply(#gf256{}, 1, B) ->
-	B;
-multiply(#gf256{}, A, 1) ->
-	A;
+multiply(#gf256{}, 0, _) ->
+	0;
+multiply(#gf256{}, _, 0) ->
+	0;
 multiply(F = #gf256{}, A, B) ->
 	X = (log(F, A) + log(F, B)) rem ?RANGE,
 	exponent(F, X).
@@ -98,7 +98,7 @@ exponent(#gf256{exponent = E}, X) ->
 %%
 log(#gf256{log = L}, X) ->
 	lists:nth(X + 1, L).
-	
+
 %%
 inverse(F = #gf256{}, X) ->
 	exponent(F, ?RANGE - log(F, X)).
@@ -127,7 +127,7 @@ monomial(#gf256{}, Coeff, Degree) when Degree >= 0 ->
 %%
 monomial_product(F, Poly, Coeff, Degree) ->
 	monomial_product(F, Poly, Coeff, Degree, []).
-%	
+%
 monomial_product(F, [H|T], C, D, Acc) ->
 	P = gf256:multiply(F, H, C),
 	monomial_product(F, T, C, D, [P|Acc]);
@@ -143,7 +143,7 @@ polynomial_product(_, _, [0]) ->
 	[0];
 polynomial_product(F, P0, P1) ->
 	polynomial_product0(F, P0, P1, [], []).
-%	
+%
 polynomial_product0(F, [H|T], P1, P2, Acc) ->
 	[H0|T0] = polynomial_product1(F, H, P1, P2, []),
 	polynomial_product0(F, T, P1, T0, [H0|Acc]);
