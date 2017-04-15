@@ -3,9 +3,9 @@
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
 % You may obtain a copy of the License at
-% 
+%
 % http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 % Unless required by applicable law or agreed to in writing, software
 % distributed under the License is distributed on an "AS IS" BASIS,
 % WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,17 +16,17 @@
 
 %% Shows how to achieve HOTP/SHA1 with a mobile phone using Google Authenticator.
 %%
-%% This module is a rag-bag of supporting functions, many of which are simplified 
-%% extracts from the core libs (?_common, ?_crypto, ?_math, ?_image). This is to 
+%% This module is a rag-bag of supporting functions, many of which are simplified
+%% extracts from the core libs (?_common, ?_crypto, ?_math, ?_image). This is to
 %% allow a full-cycle demo without requiring open-sourcing of the entire platform.
-%% 
+%%
 %% @ref QR Code: ISO/IEC 18004 (2000, 1st Edition)
 
-%% Google Authenticator Phone App 
+%% Google Authenticator Phone App
 %% iPhone:  <http://itunes.apple.com/us/app/google-authenticator/id388497605?mt=8>
 %% Android: <https://market.android.com/details?id=com.google.android.apps.authenticator>
 
-%% Google Authenticator URL Specification 
+%% Google Authenticator URL Specification
 % @ref <http://code.google.com/p/google-authenticator/wiki/KeyUriFormat>
 %  otpauth://TYPE/LABEL?PARAMETERS
 %  TYPE: hotp | totp
@@ -47,7 +47,7 @@
 -define(PERIOD, 30).
 
 run() ->
-	Passcode = crypto:sha(<<"password">>),
+	Passcode = crypto:hash(sha, <<"password">>),
 	run(<<"demo@mydomain.com">>, Passcode, ?PERIOD).
 
 run(Domain, Passcode, Seconds) ->
@@ -66,7 +66,7 @@ run(Domain, Passcode, Seconds) ->
 simple_png_encode(#qrcode{dimension = Dim, data = Data}) ->
 	MAGIC = <<137, 80, 78, 71, 13, 10, 26, 10>>,
 	Size = Dim * 8,
-	IHDR = png_chunk(<<"IHDR">>, <<Size:32, Size:32, 8:8, 2:8, 0:24>>), 
+	IHDR = png_chunk(<<"IHDR">>, <<Size:32, Size:32, 8:8, 2:8, 0:24>>),
 	PixelData = get_pixel_data(Dim, Data),
 	IDAT = png_chunk(<<"IDAT">>, PixelData),
 	IEND = png_chunk(<<"IEND">>, <<>>),
@@ -88,7 +88,7 @@ get_pixels(Bin, Count, Dim, Acc) ->
 	Row = get_pixels0(RowBits, <<0>>), % row filter byte
 	FullRow = binary:copy(Row, 8),
 	get_pixels(Bits, Count + 1, Dim, <<Acc/binary, FullRow/binary>>).
-	
+
 get_pixels0(<<1:1, Bits/bits>>, Acc) ->
 	Black = binary:copy(<<0>>, 24),
 	get_pixels0(Bits, <<Acc/binary, Black/binary>>);
@@ -100,7 +100,7 @@ get_pixels0(<<>>, Acc) ->
 
 %%
 totp() ->
-	Key = crypto:sha(<<"password">>),	
+	Key = crypto:hash(sha, <<"password">>),
 	totp(Key, ?PERIOD).
 totp(Key, Period) ->
 	T = unow() div Period,
@@ -108,7 +108,7 @@ totp(Key, Period) ->
 %% RFC-4226 "HOTP: An HMAC-Based One-Time Password Algorithm"
 %% @ref <http://tools.ietf.org/html/rfc4226>
 hotp(Key, Count) when is_binary(Key), is_integer(Count) ->
-	HS = crypto:sha_mac(Key, <<Count:64>>),
+	HS = crypto:hmac(sha, Key, <<Count:64>>),
 	<<_:19/binary, _:4, Offset:4>> = HS,
 	<<_:Offset/binary, _:1, P:31, _/binary>> = HS,
 	HOTP = integer_to_list(P rem 1000000),
