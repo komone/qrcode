@@ -10,11 +10,12 @@
     qrcode_demo,
     qrcode_mask,
     qrcode_matrix,
-    qrcode_reedsolomon
+    qrcode_reedsolomon,
+    qrcode_sup
   ]},
   {registered, []},
   {applications, [kernel, stdlib]},
-  {mod, {qrcode, []}},
+  {mod, {qrcode_app, []}},
   {env, []},
   {runtime_dependencies, []}
  ]}.
