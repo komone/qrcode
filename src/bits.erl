@@ -15,7 +15,7 @@
 -module(bits).
 
 -export([reverse/1, duplicate/2, append/1, bitlist/1, bitstring/1, stringbits/1]).
--compile(export_all).
+% export_all removed to avoid warnings; module already exports explicit API.
 
 reverse(Bin) ->
 	reverse(Bin, <<>>).
